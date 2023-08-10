@@ -1,7 +1,7 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Le capteur est déjà configuré, spécifiez un unique_id"
+            "already_configured": "Le capteur est déjà configuré, spécifiez un identifiant unique"
         },
         "error": {
             "daily_energy_mandatory": "Vous devez fournir au moins une valeur ou un modèle de valeur",
@@ -147,7 +147,7 @@
                 },
                 "data_description": {
                     "create_utility_meters": "Laissez powercalc créer des compteurs de services publics, qui effectuent un cycle quotidien, horaire, etc.",
-                    "name": "Nom de base du compteur d'énergie et de services publics. Le nom complet de l'entité sera défini en fonction du paramètre energy_sensor_naming"
+                    "name": "Nom de base pour le compteur d'énergie et de services publics. Le nom complet de l'entité sera défini en fonction de energy_sensor_naming"
                 },
                 "description": "Actuellement, les paramètres spécifiques ne peuvent être configurés que globalement",
                 "title": "Créer un capteur d'énergie pour un capteur de puissance existant"
@@ -189,7 +189,7 @@
                     "entity_id": "Entité sur laquelle la puissance virtuelle est basée, le capteur de puissance écoutera les changements d'état de cette entité à mettre à jour",
                     "name": "Laisser vide prendra le nom de l'entité source",
                     "standby_power": "Définir la quantité d'énergie que l'appareil consomme lorsqu'il est à l'état OFF",
-                    "unique_id": "Spécifiez un unique_id. Cela permettra de configurer plusieurs capteurs de puissance pour la même entité. Lorsqu'il n'est pas spécifié, il prendra l'unique_id de l'entité source"
+                    "unique_id": "Spécifiez un identifiant unique. Cela permettra de configurer plusieurs capteurs de puissance pour la même entité. Lorsqu'il n'est pas spécifié, il prendra l'identifiant unique de l'entité source"
                 },
                 "description": "Voir le fichier readme pour plus d'informations sur les stratégies possibles et les options de configuration",
                 "title": "Créer un capteur de puissance virtuel"
