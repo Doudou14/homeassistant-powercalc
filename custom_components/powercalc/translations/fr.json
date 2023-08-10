@@ -52,7 +52,7 @@
             },
             "group": {
                 "data": {
-                    "area": "Area",
+                    "area": "Zone",
                     "create_utility_meters": "Créer des compteurs d'électricité",
                     "group_energy_entities": "Entités énergétiques supplémentaires",
                     "group_member_sensors": "Membres des capteurs powercalc",
@@ -63,7 +63,7 @@
                     "unique_id": "Identifiant unique"
                 },
                 "data_description": {
-                    "area": "Adds all powercalc sensors from the specified area",
+                    "area": "Ajoute tous les capteurs powercalc de la zone spécifiée",
                     "group_energy_entities": "Capteurs d'énergie supplémentaires (kWh) de votre installation HA à inclure",
                     "group_member_sensors": "Capteurs Powercalc à inclure dans le groupe",
                     "group_power_entities": "Capteurs de puissance supplémentaires (W) de votre installation HA à inclure",
@@ -222,7 +222,7 @@
         "step": {
             "init": {
                 "data": {
-                    "area": "Area",
+                    "area": "Zone",
                     "attribute": "Attribut",
                     "autostart": "Démarrage automatique",
                     "calculation_enabled_condition": "Condition de calcul activé",
