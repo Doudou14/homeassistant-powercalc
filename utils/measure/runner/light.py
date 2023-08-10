@@ -106,11 +106,7 @@ class LightRunner(MeasurementRunner):
             csv_writer = CsvWriter(csv_file, self.color_mode, write_header_row)
 
             if resume_at is None:
-                self.light_controller.change_light_state(
-                    ColorMode.BRIGHTNESS,
-                    on=True,
-                    bri=1,
-                )
+                self.light_controller.change_light_state(ColorMode.BRIGHTNESS, on=False)
 
             # Initially wait longer so the smartplug can settle
             _LOGGER.info(f"Start taking measurements for color mode: {self.color_mode}")
@@ -300,7 +296,7 @@ class LightRunner(MeasurementRunner):
     @staticmethod
     def calculate_time_left(
         variations: list[Variation],
-        current_variation: Variation = None,
+        current_variation: Variation | None = None,
         progress: int = 0,
     ) -> str:
         """Try to guess the remaining time left. This will not account for measuring errors / retries obviously"""
@@ -378,8 +374,7 @@ class LightRunner(MeasurementRunner):
                 )
                 # Wait a longer amount of time for the PM to settle
                 time.sleep(config.SLEEP_TIME_NUDGE)
-                power = self.take_power_measurement(variation_start_time)
-                return power
+                return self.take_power_measurement(variation_start_time)
             except OutdatedMeasurementError:
                 continue
             except ZeroReadingError as error:

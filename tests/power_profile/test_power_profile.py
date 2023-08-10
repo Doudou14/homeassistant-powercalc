@@ -84,7 +84,6 @@ async def test_load_sub_profile(hass: HomeAssistant) -> None:
     assert power_profile.model == "YLDL01YL"
     assert power_profile.name == "Yeelight YLDL01YL Downlight"
     assert power_profile.sub_profile == "ambilight"
-    assert power_profile.is_additional_configuration_required is False
 
 
 async def test_load_sub_profile_without_model_json(hass: HomeAssistant) -> None:
@@ -122,6 +121,24 @@ async def test_unsupported_entity_domain(hass: HomeAssistant) -> None:
     )
     assert not power_profile.is_entity_domain_supported(
         SourceEntity("switch.test", "test", "switch"),
+    )
+
+
+async def test_hue_switch_supported_entity_domain(hass: HomeAssistant) -> None:
+    power_profile = await ProfileLibrary.factory(hass).get_profile(
+        ModelInfo("signify", "LOM001"),
+    )
+    assert power_profile.is_entity_domain_supported(
+        SourceEntity(
+            "light.test",
+            "test",
+            "light",
+            entity_entry=RegistryEntry(
+                entity_id="light.test",
+                unique_id="1234",
+                platform="hue",
+            ),
+        ),
     )
 
 
@@ -189,7 +206,9 @@ async def test_sub_profile_matcher_entity_id(hass: HomeAssistant) -> None:
     ],
 )
 async def test_sub_profile_matcher_integration(
-    hass: HomeAssistant, registry_entry: RegistryEntry, expected_profile: str | None
+    hass: HomeAssistant,
+    registry_entry: RegistryEntry,
+    expected_profile: str | None,
 ) -> None:
     power_profile = await ProfileLibrary.factory(hass).get_profile(
         ModelInfo("Test", "Test"),

@@ -1,4 +1,5 @@
 import logging
+import uuid
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,9 +13,13 @@ from homeassistant.config_entries import SOURCE_IGNORE, SOURCE_INTEGRATION_DISCO
 from homeassistant.const import CONF_ENTITY_ID, CONF_NAME, CONF_UNIQUE_ID, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_registry import RegistryEntry
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
+    mock_device_registry,
+    mock_registry,
 )
 
 from custom_components.powercalc.const import (
@@ -27,8 +32,12 @@ from custom_components.powercalc.const import (
     DOMAIN,
     SensorType,
 )
-from custom_components.powercalc.discovery import autodiscover_model
+from custom_components.powercalc.discovery import (
+    autodiscover_model,
+    get_model_information,
+)
 from custom_components.powercalc.power_profile.factory import get_power_profile
+from custom_components.powercalc.power_profile.library import ModelInfo
 from custom_components.test.light import MockLight
 
 from .common import create_mock_light_entity, run_powercalc_setup
@@ -63,13 +72,6 @@ async def test_autodiscovery(hass: HomeAssistant, mock_flow_init: AsyncMock) -> 
     assert mock_calls[0][2]["data"][CONF_ENTITY_ID] == "light.testa"
     assert mock_calls[1][2]["context"] == {"source": SOURCE_INTEGRATION_DISCOVERY}
     assert mock_calls[1][2]["data"][CONF_ENTITY_ID] == "light.testb"
-
-    # Also check if power sensors are created.
-    # Currently, we also create them directly, even without the user finishing the discovery flow
-    # In the future this behaviour may change.
-    assert hass.states.get("sensor.testa_power")
-    assert hass.states.get("sensor.testb_power")
-    assert not hass.states.get("sensor.testc_power")
 
 
 async def test_discovery_skipped_when_confirmed_by_user(
@@ -252,6 +254,21 @@ async def test_autodiscover_skips_diagnostics_entities(
     assert not hass.states.get("sensor.test_device_power")
 
 
+async def test_autodiscover_skips_unsupported_domains(
+    hass: HomeAssistant,
+    mock_entity_with_model_information: MockEntityWithModel,
+) -> None:
+    mock_entity_with_model_information(
+        "media_player.test",
+        "signify",
+        "LCT010",
+    )
+
+    await run_powercalc_setup(hass, {})
+
+    assert not hass.states.get("sensor.test_power")
+
+
 async def test_load_model_with_slashes(
     hass: HomeAssistant,
     mock_entity_with_model_information: MockEntityWithModel,
@@ -385,3 +402,47 @@ async def test_no_power_sensors_are_created_for_ignored_config_entries(
 
     assert not hass.states.get("sensor.test_power")
     assert "Already setup with discovery, skipping new discovery" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "entity_entry,device_entry,model_info",
+    [
+        (
+            RegistryEntry(
+                entity_id="switch.test", unique_id=uuid.uuid4(), platform="switch"
+            ),
+            None,
+            None,
+        ),
+        (
+            RegistryEntry(
+                entity_id="switch.test",
+                unique_id=uuid.uuid4(),
+                platform="switch",
+                device_id="a",
+            ),
+            DeviceEntry(id="a", manufacturer="foo", model="bar"),
+            ModelInfo("foo", "bar"),
+        ),
+        (
+            RegistryEntry(
+                entity_id="switch.test",
+                unique_id=uuid.uuid4(),
+                platform="switch",
+                device_id="a",
+            ),
+            DeviceEntry(id="b", manufacturer="foo", model="bar"),
+            None,
+        ),
+    ],
+)
+async def test_get_model_information(
+    hass: HomeAssistant,
+    entity_entry: RegistryEntry,
+    device_entry: DeviceEntry | None,
+    model_info: ModelInfo | None,
+) -> None:
+    if device_entry:
+        mock_device_registry(hass, {str(device_entry.id): device_entry})
+    mock_registry(hass, {str(entity_entry.id): entity_entry})
+    assert await get_model_information(hass, entity_entry) == model_info

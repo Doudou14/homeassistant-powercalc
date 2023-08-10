@@ -20,7 +20,8 @@ from aliases import MANUFACTURER_DIRECTORY_MAPPING  # noqa: E402
 DEVICE_TYPES = [
     ("light", "Lights"),
     ("smart_speaker", "Smart speakers"),
-    ("smart_switch", "Smart switches"),
+    ("smart_switch", "Smart switches / plugs"),
+    ("network", "Networking"),
 ]
 
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.abspath(__file__), "../../../../"))
@@ -62,7 +63,7 @@ def generate_supported_model_list(model_listing: list[dict]):
                 model["model"],
                 model["name"],
                 "<br />".join(model.get("aliases") or []),
-                model["standby_power"],
+                model.get("standby_power") or 0,
             ]
             if device_type[0] == "light":
                 row.append(",".join(model.get("color_modes") or []))

@@ -132,50 +132,40 @@ async def test_grouped_power_sensor(hass: HomeAssistant) -> None:
 
 
 async def test_subgroups_from_config_entry(hass: HomeAssistant) -> None:
-    config_entry_groupa = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_group_a = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupA",
             CONF_GROUP_POWER_ENTITIES: ["sensor.test1_power"],
             CONF_GROUP_ENERGY_ENTITIES: ["sensor.test1_energy"],
         },
     )
-    config_entry_groupa.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_groupa.entry_id)
-    await hass.async_block_till_done()
 
-    config_entry_groupb = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_group_b = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupB",
             CONF_GROUP_POWER_ENTITIES: ["sensor.test2_power"],
             CONF_GROUP_ENERGY_ENTITIES: ["sensor.test2_energy"],
             CONF_SUB_GROUPS: [
-                config_entry_groupa.entry_id,
+                config_entry_group_a.entry_id,
                 "464354354543",  # Non existing entry_id, should not break setup
             ],
         },
     )
-    config_entry_groupb.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_groupb.entry_id)
-    await hass.async_block_till_done()
 
-    config_entry_groupc = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupC",
             CONF_GROUP_POWER_ENTITIES: ["sensor.test3_power"],
             CONF_GROUP_ENERGY_ENTITIES: ["sensor.test3_energy"],
-            CONF_SUB_GROUPS: [config_entry_groupb.entry_id],
+            CONF_SUB_GROUPS: [config_entry_group_b.entry_id],
         },
     )
-
-    config_entry_groupc.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_groupc.entry_id)
-    await hass.async_block_till_done()
 
     groupa_power_state = hass.states.get("sensor.groupa_power")
     assert groupa_power_state
@@ -541,20 +531,15 @@ async def test_members_are_unhiden_after_group_removed(
         suggested_object_id="test_power",
     )
 
-    config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "MyGroup",
             CONF_GROUP_POWER_ENTITIES: ["sensor.test_power"],
             CONF_HIDE_MEMBERS: True,
         },
-        unique_id="group_unique_id",
     )
-
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
 
     assert hass.states.get("sensor.mygroup_power")
     assert (
@@ -610,9 +595,9 @@ async def test_group_utility_meter(
 
 
 async def test_include_config_entries_in_group(hass: HomeAssistant) -> None:
-    config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
             CONF_CREATE_UTILITY_METERS: True,
             CONF_UNIQUE_ID: "abcdef",
@@ -623,23 +608,15 @@ async def test_include_config_entries_in_group(hass: HomeAssistant) -> None:
         },
     )
 
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
-
-    group_config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupA",
             CONF_GROUP_MEMBER_SENSORS: [config_entry.entry_id],
             CONF_GROUP_POWER_ENTITIES: ["sensor.other_power"],
         },
     )
-
-    group_config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(group_config_entry.entry_id)
-    await hass.async_block_till_done()
 
     group_power_state = hass.states.get("sensor.groupa_power")
     assert group_power_state
@@ -669,21 +646,18 @@ async def test_add_virtual_power_sensor_to_group_on_creation(
         "xyz",
     )
 
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_group = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupA",
             CONF_GROUP_MEMBER_SENSORS: [config_entry_sensor1.entry_id],
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-    await hass.async_block_till_done()
 
-    config_entry_sensor2 = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_sensor2 = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
             CONF_NAME: "VirtualSensor2",
             CONF_ENTITY_ID: DUMMY_ENTITY_ID,
@@ -692,9 +666,6 @@ async def test_add_virtual_power_sensor_to_group_on_creation(
             CONF_FIXED: {CONF_POWER: 50},
         },
     )
-    config_entry_sensor2.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_sensor2.entry_id)
-    await hass.async_block_till_done()
 
     config_entry_group = hass.config_entries.async_get_entry(
         config_entry_group.entry_id,
@@ -736,16 +707,13 @@ async def test_virtual_power_sensor_is_not_added_twice_to_group_after_reload(
 ) -> None:
     """See https://github.com/bramstroker/homeassistant-powercalc/issues/1298"""
 
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_group = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupA",
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-    await hass.async_block_till_done()
 
     config_entry_sensor = MockConfigEntry(
         domain=DOMAIN,
@@ -841,17 +809,14 @@ async def test_config_entry_is_removed_from_associated_groups_on_removal(
     groups: list[str] = ["GroupA", "GroupB", "GroupC"]
     group_entry_ids: list[str] = []
     for group in groups:
-        config_entry_group = MockConfigEntry(
-            domain=DOMAIN,
-            data={
+        config_entry_group = await setup_config_entry(
+            hass,
+            {
                 CONF_SENSOR_TYPE: SensorType.GROUP,
                 CONF_NAME: group,
                 CONF_GROUP_MEMBER_SENSORS: [config_entry_sensor.entry_id],
             },
         )
-        config_entry_group.add_to_hass(hass)
-        assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-        await hass.async_block_till_done()
         group_entry_ids.append(config_entry_group.entry_id)
 
     await hass.config_entries.async_remove(config_entry_sensor.entry_id)
@@ -865,21 +830,17 @@ async def test_config_entry_is_removed_from_associated_groups_on_removal(
 async def test_group_is_removed_from_virtual_power_entry_on_removal(
     hass: HomeAssistant,
 ) -> None:
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    config_entry_group = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "GroupA",
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-    await hass.async_block_till_done()
 
-    config_entry_sensor = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id="xyz",
-        data={
+    config_entry_sensor = await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
             CONF_UNIQUE_ID: "xyz",
             CONF_ENTITY_ID: DUMMY_ENTITY_ID,
@@ -888,11 +849,7 @@ async def test_group_is_removed_from_virtual_power_entry_on_removal(
             CONF_FIXED: {CONF_POWER: 50},
             CONF_GROUP: config_entry_group.entry_id,
         },
-        title="Test",
     )
-    config_entry_sensor.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_sensor.entry_id)
-    await hass.async_block_till_done()
 
     # Remove the group from HA
     await hass.config_entries.async_remove(config_entry_group.entry_id)
@@ -907,9 +864,9 @@ async def test_error_is_logged_when_config_entry_associated_to_non_existing_grou
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     caplog.set_level(logging.WARNING)
-    config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
             CONF_ENTITY_ID: DUMMY_ENTITY_ID,
             CONF_MODE: CalculationStrategy.FIXED,
@@ -918,10 +875,6 @@ async def test_error_is_logged_when_config_entry_associated_to_non_existing_grou
         },
     )
 
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
-
     assert (
         "ConfigEntry Mock Title: Cannot add/remove to group non-existing-config-entry-id. It does not exist"
         in caplog.text
@@ -929,9 +882,9 @@ async def test_error_is_logged_when_config_entry_associated_to_non_existing_grou
 
 
 async def test_energy_unit_conversions(hass: HomeAssistant) -> None:
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "TestGroup",
             CONF_GROUP_ENERGY_ENTITIES: [
@@ -941,9 +894,6 @@ async def test_energy_unit_conversions(hass: HomeAssistant) -> None:
             ],
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-    await hass.async_block_till_done()
 
     hass.states.async_set(
         "sensor.energy_Wh",
@@ -968,18 +918,16 @@ async def test_energy_unit_conversions(hass: HomeAssistant) -> None:
 
 
 async def test_power_unit_conversions(hass: HomeAssistant) -> None:
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: "TestGroup",
             CONF_GROUP_POWER_ENTITIES: ["sensor.power_w", "sensor.power_kw"],
+            CONF_GROUP_ENERGY_ENTITIES: ["sensor.energy_w", "sensor.energy_kw"],
             CONF_ENERGY_SENSOR_UNIT_PREFIX: UnitPrefix.NONE,
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
-    await hass.async_block_till_done()
 
     hass.states.async_set(
         "sensor.power_w",
@@ -994,8 +942,14 @@ async def test_power_unit_conversions(hass: HomeAssistant) -> None:
 
     await hass.async_block_till_done()
 
-    energy_state = hass.states.get("sensor.testgroup_power")
-    assert energy_state.state == "200.00"
+    power_state = hass.states.get("sensor.testgroup_power")
+    assert power_state.state == "200.00"
+    assert power_state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) == UnitOfPower.WATT
+
+    energy_state = hass.states.get("sensor.testgroup_energy")
+    assert (
+        energy_state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) == UnitOfEnergy.WATT_HOUR
+    )
 
 
 async def test_gui_discovered_entity_in_yaml_group(
@@ -1008,19 +962,15 @@ async def test_gui_discovered_entity_in_yaml_group(
 
     caplog.set_level(logging.ERROR)
 
-    config_entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
             CONF_ENTITY_ID: "media_player.mediabox",
             CONF_MODE: CalculationStrategy.FIXED,
             CONF_FIXED: {CONF_POWER: 50},
         },
     )
-
-    config_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
 
     await run_powercalc_setup(
         hass,
@@ -1218,20 +1168,76 @@ async def test_storage_version_1(hass: HomeAssistant) -> None:
     assert store_state is None
 
 
+async def test_unknown_member_config_entry_is_skipped_from_group(
+    hass: HomeAssistant,
+) -> None:
+    member_entry = await setup_config_entry(
+        hass,
+        {
+            CONF_SENSOR_TYPE: SensorType.VIRTUAL_POWER,
+            CONF_ENTITY_ID: "light.test",
+            CONF_MODE: CalculationStrategy.FIXED,
+            CONF_FIXED: {CONF_POWER: 50},
+        },
+    )
+
+    await setup_config_entry(
+        hass,
+        {
+            CONF_SENSOR_TYPE: SensorType.GROUP,
+            CONF_NAME: "group",
+            CONF_GROUP_MEMBER_SENSORS: [member_entry.entry_id, "foobar"],
+        },
+    )
+
+    assert hass.states.get("sensor.group_power").attributes.get("entities") == {
+        "sensor.test_power",
+    }
+
+
+async def test_reference_existing_sensor_in_group(hass: HomeAssistant) -> None:
+    await run_powercalc_setup(
+        hass,
+        [
+            get_simple_fixed_config("switch.test"),
+            {
+                CONF_CREATE_GROUP: "TestGroup",
+                CONF_ENTITIES: [
+                    {
+                        CONF_ENTITY_ID: "switch.test",
+                    },
+                ],
+            },
+        ],
+    )
+
+    group_state = hass.states.get("sensor.testgroup_power")
+    assert group_state
+    assert group_state.attributes.get(ATTR_ENTITIES) == {"sensor.test_power"}
+
+
 async def _create_energy_group(
     hass: HomeAssistant,
     name: str,
     member_entities: list[str],
 ) -> None:
     """Create a group energy sensor for testing purposes"""
-    config_entry_group = MockConfigEntry(
-        domain=DOMAIN,
-        data={
+    await setup_config_entry(
+        hass,
+        {
             CONF_SENSOR_TYPE: SensorType.GROUP,
             CONF_NAME: name,
             CONF_GROUP_ENERGY_ENTITIES: member_entities,
         },
     )
-    config_entry_group.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(config_entry_group.entry_id)
+
+
+async def setup_config_entry(hass: HomeAssistant, entry_data: dict) -> MockConfigEntry:
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=entry_data,
+    )
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
+    return config_entry

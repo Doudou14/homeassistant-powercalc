@@ -6,7 +6,15 @@ import os
 import re
 from typing import NamedTuple, Protocol
 
-from homeassistant.backports.enum import StrEnum
+from awesomeversion.awesomeversion import AwesomeVersion
+from homeassistant.const import __version__ as HA_VERSION  # noqa
+
+if AwesomeVersion(HA_VERSION) >= AwesomeVersion("2023.8.0"):
+    from enum import StrEnum
+else:
+    from homeassistant.backports.enum import StrEnum  # pragma: no cover
+
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -28,6 +36,7 @@ class DeviceType(StrEnum):
     LIGHT = "light"
     SMART_SWITCH = "smart_switch"
     SMART_SPEAKER = "smart_speaker"
+    NETWORK = "network"
 
 
 class SubProfileMatcherType(StrEnum):
@@ -41,6 +50,7 @@ DEVICE_DOMAINS = {
     DeviceType.LIGHT: LIGHT_DOMAIN,
     DeviceType.SMART_SWITCH: SWITCH_DOMAIN,
     DeviceType.SMART_SPEAKER: MEDIA_PLAYER_DOMAIN,
+    DeviceType.NETWORK: BINARY_SENSOR_DOMAIN,
 }
 
 
@@ -163,15 +173,6 @@ class PowerProfile:
         return mode == self.calculation_strategy
 
     @property
-    def is_additional_configuration_required(self) -> bool:
-        """Checks if the power profile can be setup without any additional user configuration."""
-        if self.has_sub_profiles and self.sub_profile is None:
-            return True
-        if self.needs_fixed_config:
-            return True
-        return False
-
-    @property
     def needs_fixed_config(self) -> bool:
         """Used for smart switches which only provides standby power values.
         This indicates the user must supply the power values in the config flow.
@@ -240,7 +241,7 @@ class PowerProfile:
             self.device_type == DeviceType.SMART_SWITCH
             and entity_entry
             and entity_entry.platform in ["hue"]
-        ):
+        ):  # see https://github.com/bramstroker/homeassistant-powercalc/issues/1491
             return True
         return DEVICE_DOMAINS[self.device_type] == source_entity.domain
 
@@ -298,7 +299,8 @@ class SubProfileSelector:
             return EntityIdMatcher(matcher_config["pattern"], matcher_config["profile"])
         if matcher_type == SubProfileMatcherType.INTEGRATION:
             return IntegrationMatcher(
-                matcher_config["integration"], matcher_config["profile"]
+                matcher_config["integration"],
+                matcher_config["profile"],
             )
         raise PowercalcSetupError(f"Unknown sub profile matcher type: {matcher_type}")
 
